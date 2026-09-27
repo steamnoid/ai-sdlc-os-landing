@@ -39,23 +39,34 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Install uv
+        run: curl -fsSL https://astral.sh/uv/install.sh | sh
+
+      - name: Check out the project this page is about
+        # Checked out here rather than by the collector, because the next step needs the
+        # project on disk and the step after that needs its dependencies installed: a
+        # collector that cloned as its first act would have nothing to sync against.
+        run: |
+          mkdir -p build
+          git clone --quiet --branch "$THE_BRANCH" https://github.com/steamnoid/ai-sdlc-os.git build/the-repository
+
       - name: Install the project's own dependencies
         # The collector imports the project's code, and that code imports langgraph. A
-        # bare interpreter cannot read the state machine, so the project's lockfile is
-        # installed rather than guessed at.
-        run: |
-          curl -fsSL https://astral.sh/uv/install.sh | sh
-          ~/.local/bin/uv sync --all-extras
+        # bare interpreter cannot read the state machine, and the refusal it produces
+        # says so by name — which is the right behaviour and not a way to build a page.
+        run: ~/.local/bin/uv sync --all-extras --project build/the-repository
 
       - name: Read the repository, run its suite, and write the state
         # No GITHUB_TOKEN is passed on purpose: GitHub documents that using it against
         # the REST API invites secondary rate limits, and these are public endpoints.
         # If a call fails the collectors record "unread" with the reason, so a rate
         # limit shortens the page instead of breaking the build.
+        #
+        # The interpreter is left to the collector, which prefers the checkout's own
+        # virtual environment — the one just installed.
         run: |
-          ~/.local/bin/uv run python --version
-          PATH="$HOME/.local/bin:$PATH" node scripts/ask_the_repository.mjs \
-            --clone \
+          node scripts/ask_the_repository.mjs \
+            --repository build/the-repository \
             --ref "$THE_BRANCH" \
             --run-the-suite \
             --github-api https://api.github.com \
