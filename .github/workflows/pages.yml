@@ -36,6 +36,12 @@ jobs:
   collect:
     name: Read the repository
     runs-on: ubuntu-latest
+    # A step's output is not a job's output. Without this line the build job's
+    # `needs.collect.outputs.has_changed` is empty, the `if:` is false, and the build
+    # is skipped on every run while the run reports success — which is how the first
+    # version of this published nothing at all.
+    outputs:
+      has_changed: ${{ steps.change.outputs.has_changed }}
     steps:
       - uses: actions/checkout@v4
 
