@@ -101,15 +101,42 @@ page is about.
 
 ## The schedule is the fragile part
 
-The page rebuilds every six hours so it cannot go stale quietly. GitHub documents two
-things about that, and both are handled here and both are worth knowing before they
-matter:
+The page reads the project every hour so it cannot go stale quietly, and publishes only
+when a fact on it changed. GitHub documents two things about a schedule, and both are
+handled here and both are worth knowing before they matter:
 
 - **A schedule can be delayed, and under load some queued jobs are dropped.** Hence
-  seventeen past rather than on the hour.
+  seventeen past rather than on the hour, and hourly rather than daily, because a job
+  that is dropped is an hour of staleness rather than a day of it.
 - **In a public repository, scheduled workflows are disabled after 60 days without
-  repository activity.** A page that rebuilds itself never receives a commit, so its own
-  mechanism is what would switch it off. The `keepalive` job pushes one empty commit
-  once the silence passes 45 days — one a month, rather than two hundred a year.
+  repository activity.** A page that reads and publishes on a schedule never receives a
+  commit, so its own mechanism is what would switch it off. The `keepalive` job pushes
+  one empty commit once the silence passes 45 days — one a month, rather than two
+  hundred a year.
 
 If the page ever stops updating, check that job before anything else.
+
+## Publishing only what changed
+
+A run that finds the project exactly where it was would otherwise publish a
+byte-identical artifact four times a day, so the build and deploy steps are skipped
+when nothing changed. Two things about that rule are easy to get wrong, and both are
+held by tests in `test/skipping_the_build.test.mjs`:
+
+- **Do not key the skip on the project's commit.** The project stands still, a template
+  is fixed, and the page keeps the old template for ever. The state therefore carries
+  `the_build.page_code_commit` beside `tip_commit` — *what was read* and *what rendered
+  it* — and one comparison covers both.
+- **Do not compare `the_build.read_at` or `the_build.was_cloned`.** They differ on every
+  run by definition, and a comparison that always finds a difference skips nothing at
+  all, which is the same as having no comparison.
+
+**A state that cannot be read is a change, never agreement.** A site with nothing
+published yet, a 404, a rate limit — every one of those means the comparison did not
+happen, and it must not be reported as "no change". Publishing again is cheap and being
+wrong is not.
+
+**The state is published because the page's claim should be checkable.** It is copied
+into the build by a hook in `astro.config.mjs` rather than by a step in the workflow, so
+that a developer's `npm run build` and a CI run produce the same artifact — which they
+did not, when it was a workflow step.

@@ -7,9 +7,10 @@ on:
   push:
     branches: [main]
   schedule:
-    # Seventeen past, not on the hour: a schedule at :00 is queued behind everybody
-    # else's, and GitHub documents that under load some of those jobs are dropped.
-    - cron: "17 */6 * * *"
+    # Hourly, at seventeen past. Not on the hour: GitHub documents that a schedule at
+    # :00 queues behind everybody else's and that under load some queued jobs are
+    # dropped, and an hourly schedule is precisely the one everybody writes at :00.
+    - cron: "17 * * * *"
   workflow_dispatch:
 
 permissions:
@@ -27,6 +28,9 @@ env:
   # The branch the project is on. `main` there holds two commits and no source at all,
   # so the page would have nothing to show. One value changes when the work merges.
   THE_BRANCH: phase-1-foundation
+  # Where this page is published, which is also where the state it was built from is
+  # read back from.
+  THE_SITE: https://steamnoid.github.io/ai-sdlc-os-landing
 
 jobs:
   collect:
@@ -70,6 +74,7 @@ jobs:
             --ref "$THE_BRANCH" \
             --run-the-suite \
             --github-api https://api.github.com \
+            --page-code-commit "$GITHUB_SHA" \
             --out src/state/the_repository.json
 
       - name: The collectors' own tests
@@ -78,6 +83,16 @@ jobs:
         # page and needs Astro, so it runs in the build job where the state it reads is
         # already there.
         run: npm run test:collectors
+
+      - name: Has anything the page prints changed
+        id: change
+        # The live site publishes the state it was built from, so this needs no
+        # previous run, no token and no deployment history. A state that cannot be read
+        # counts as a change: a comparison that did not happen is not agreement.
+        run: |
+          node scripts/has_anything_changed.mjs \
+            --state src/state/the_repository.json \
+            --published-at "$THE_SITE"
 
       - uses: actions/upload-artifact@v4
         with:
@@ -94,6 +109,9 @@ jobs:
   build:
     name: Build the page
     needs: collect
+    # Skipped when every fact on the page is the fact already published. The run still
+    # ends green — a skipped build is a build that had nothing to do, not a failure.
+    if: needs.collect.outputs.has_changed == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -121,6 +139,8 @@ jobs:
         run: npm run test:page
 
       - run: npm run build
+      # The state is copied in by a build hook in astro.config.mjs, not by a step here,
+      # so that a developer's `npm run build` and this run produce the same artifact.
 
       - uses: actions/configure-pages@v5
         with:

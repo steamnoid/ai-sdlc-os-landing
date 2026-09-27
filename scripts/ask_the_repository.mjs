@@ -186,6 +186,12 @@ export async function collect_everything(what_was_asked_for) {
 			branch: the_history.branch && the_history.branch !== "HEAD" ? the_history.branch : the_ref,
 			tip_commit: the_history.tip_commit ?? null,
 			was_cloned: what_was_asked_for.repository === undefined,
+			// Which of this repository's commits rendered the page, so that the state
+			// carries *what was read* and *what rendered it* together. Comparing only the
+			// project's commit would mean a fixed template waited for the project to move
+			// before it could be published, and the two facts have to be in one place for
+			// a single comparison to cover both.
+			page_code_commit: what_was_asked_for.page_code_commit ?? null,
 		},
 		the_history,
 		the_suite: read_the_suite(the_repository, {
@@ -260,6 +266,9 @@ const usage = `Collect the state of a repository for the page to render.
     --github-api <url>       the API to ask about pull requests and the repository
     --owner <name> --name <name>
                              the repository the page is about (default: ${defaults.owner}/${defaults.name})
+    --page-code-commit <sha>
+                             this repository's commit, recorded in the state so a run can
+                             tell a changed template from a changed project
 `;
 
 async function main() {

@@ -30,17 +30,18 @@ if (!existsSync(where_the_state_lives)) {
 const the_state = JSON.parse(readFileSync(where_the_state_lives, "utf8"));
 
 let the_page_as_text = "";
+let where_the_build_landed = "";
 
 before(async () => {
-	const where_the_build_should_land = mkdtempSync(join(tmpdir(), "the-built-page-"));
-	await run(process.execPath, [the_astro, "build", "--outDir", where_the_build_should_land], {
+	where_the_build_landed = mkdtempSync(join(tmpdir(), "the-built-page-"));
+	await run(process.execPath, [the_astro, "build", "--outDir", where_the_build_landed], {
 		cwd: the_repository,
 		encoding: "utf8",
 	});
 	// The tags come off, because a word split across elements reads as absent when it
 	// is on the page, and a test that cannot see it will send somebody looking for a
 	// bug that is not there.
-	the_page_as_text = readFileSync(join(where_the_build_should_land, "index.html"), "utf8")
+	the_page_as_text = readFileSync(join(where_the_build_landed, "index.html"), "utf8")
 		.replace(/<[^>]+>/g, " ")
 		.replace(/\s+/g, " ");
 });
@@ -121,4 +122,24 @@ test("the suite's verdict on the page is the verdict the state carries", () => {
 test("the page names the commit and the branch it was built from", () => {
 	assert.ok(the_page_as_text.includes(the_state.the_build.tip_commit), "the build's commit is not on the page");
 	assert.ok(the_page_as_text.includes(the_state.the_build.branch), "the build's branch is not on the page");
+});
+
+test("the build publishes the state it was built from, so the page can be checked by hand", () => {
+	// The page's whole argument is that its numbers came from a machine reading the
+	// project. Publishing the state makes that checkable by a reader rather than a claim,
+	// and it is also what lets the next run ask what is already published without a
+	// previous run, a token or a deployment history.
+	const where_the_published_state_should_be = join(where_the_build_landed, "the_repository.json");
+	assert.ok(
+		existsSync(where_the_published_state_should_be),
+		"the build published no state, so the next run has nothing to compare against and publishes every hour",
+	);
+
+	const the_published = JSON.parse(readFileSync(where_the_published_state_should_be, "utf8"));
+	assert.deepEqual(
+		the_published.the_build.tip_commit,
+		the_state.the_build.tip_commit,
+		"the published state is not the state this page was built from",
+	);
+	assert.equal(the_published.the_suite.passed, the_state.the_suite.passed);
 });
