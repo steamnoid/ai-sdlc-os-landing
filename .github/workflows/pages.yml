@@ -72,8 +72,12 @@ jobs:
             --github-api https://api.github.com \
             --out src/state/the_repository.json
 
-      - name: The page's own tests
-        run: npm test
+      - name: The collectors' own tests
+        # These three files need nothing but node, so they run before the project's
+        # dependencies exist and without `npm ci` at all. The fourth test builds the
+        # page and needs Astro, so it runs in the build job where the state it reads is
+        # already there.
+        run: npm run test:collectors
 
       - uses: actions/upload-artifact@v4
         with:
@@ -98,6 +102,13 @@ jobs:
           name: the-state
 
       - run: npm ci
+
+      - name: The page's own test
+        # The test that builds the page and checks its facts against the state just
+        # read. It is the one that catches a sentence somebody typed, and it needs the
+        # state and Astro, so it belongs here rather than in the collect job.
+        run: npm run test:page
+
       - run: npm run build
 
       - uses: actions/configure-pages@v5
