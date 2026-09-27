@@ -84,6 +84,15 @@ page is about.
 
 - **Do not commit `src/state/the_repository.json`.** It is a build artifact, and the
   first deployment published a stale one precisely because it was there to be used.
+- **A card is a link, not a link in a card.** Where a thing on the page is worth
+  pressing — a delivery, an artifact, a commit — the whole thing is the anchor, and it
+  says so in words. A link on a two-character `#2` in a corner is the least findable
+  place it can be, clickability that only appears on hover does not exist on a touch
+  screen, and an anchor inside an anchor is invalid HTML that browsers resolve by
+  breaking the inner one. `test/the_page_says_only_what_the_state_says.test.mjs` counts
+  `href` attributes rather than URLs, because the project's own backlog quotes a pull
+  request's address as text and a test that cannot tell the difference fails for a
+  reason that has nothing to do with what it is checking.
 - **Do not type a fact into `src/pages/index.astro`.** The test that catches it is
   `test/the_page_says_only_what_the_state_says.test.mjs`, and it caught three sentences
   the first time it ran — including "Two pull requests", written by the person who wrote
