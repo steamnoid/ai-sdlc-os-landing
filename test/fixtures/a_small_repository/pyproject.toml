@@ -1,9 +1,15 @@
 [project]
 name = "a-small-repository"
 requires-python = ">=3.12"
+dependencies = [
+    "pydantic>=2.0",
+]
 
-[project.dependencies]
-pydantic = "^2.0"
+[project.optional-dependencies]
+# The graph and the model factory, kept out of the default install.
+agent = [
+    "langgraph>=1.0",
+]
 
 [dependency-groups]
-dev = ["pytest = \"^9.0\""]
+dev = ["pytest>=9.0"]

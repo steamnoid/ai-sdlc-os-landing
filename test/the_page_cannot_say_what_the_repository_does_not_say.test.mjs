@@ -3,7 +3,7 @@ import { execFile, spawnSync } from "node:child_process";
 import { createServer } from "node:http";
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { test } from "node:test";
@@ -67,6 +67,88 @@ function a_copy_of_the_fixture() {
 		},
 	};
 }
+
+/** A copy of the fixture that is a git checkout of its own, with the history a test asked for. */
+function a_checkout_of_the_fixture(how_many_commits, t) {
+	const the_copy = a_copy_of_the_fixture();
+	t.after(() => the_copy.keep());
+	spawnSync("git", ["init", "-q", "-b", "main"], { cwd: the_copy.repository });
+	spawnSync("mkdir", ["-p", join(the_copy.repository, "notes")]);
+	for (let which = 1; which <= how_many_commits; which += 1) {
+		the_copy.put(`notes/note-${which}.md`, `# note ${which}\n`);
+		spawnSync("git", ["add", "-A"], { cwd: the_copy.repository });
+		spawnSync(
+			"git",
+			["-c", "user.name=A Reader", "-c", "user.email=reader@example.com", "commit", "-q", "-m", `note ${which}`],
+			{ cwd: the_copy.repository },
+		);
+	}
+	return the_copy.repository;
+}
+
+test("a package the pyproject declares is named on the page, and the extras are kept apart", async () => {
+	const the_state = await the_state_of(a_small_repository);
+
+	assert.match(the_state.the_stack.python, /3\.\d+/, "the Python the project needs was not read");
+	const the_names = the_state.the_stack.dependencies.map((a_dependency) => a_dependency.name);
+	assert.ok(
+		the_names.includes("pydantic"),
+		`pydantic is declared by the fixture's pyproject and is missing from ${the_names}, so the stack is being read from the wrong place`,
+	);
+	const the_extras = the_state.the_stack.optional_dependencies;
+	assert.ok(Array.isArray(the_extras), "the extras are not a list, so a package the domain does not need would look like one it does");
+	assert.ok(
+		the_extras.some((a_group) => a_group.name === "agent" && a_group.packages.includes("langgraph")),
+		`the agent extra is missing from ${JSON.stringify(the_extras)}`,
+	);
+});
+
+test("an interpreter named by a relative path is run from where it was named", async (t) => {
+	// The collector uses one interpreter twice — once to read the code and once to run
+	// the suite — and the suite runs *inside* the repository. A relative path given on
+	// the command line means one place in particular, and the second use of it silently
+	// looked for a different file, which cost a real run rather than an error.
+	const the_copy = a_checkout_of_the_fixture(1, t);
+	const the_interpreter = an_interpreter_whose_suite_says(['echo "1 passed in 0.01s"'], 0, t);
+	const how_they_see_it = relative(process.cwd(), the_interpreter);
+
+	const the_state = await the_state_of(the_copy, "--run-the-suite", "--python", how_they_see_it);
+
+	assert.equal(the_state.the_suite.was_run, true, "the suite was not run at all");
+	assert.equal(the_state.the_suite.is_green, true, `the suite did not run: ${the_state.the_suite.why_not}`);
+	assert.ok(the_state.the_domain.stages.length > 0, "the code was not read either");
+});
+
+test("a clone is read whole, because a shallow one would report one commit for a year of work", async (t) => {
+	const a_repository_with_a_history = a_checkout_of_the_fixture(5, t);
+	const where_the_clone_should_land = mkdtempSync(join(tmpdir(), "the-clone-"));
+	t.after(() => rmSync(where_the_clone_should_land, { recursive: true, force: true }));
+
+	const where_the_state_should_land = join(where_the_clone_should_land, "the_repository.json");
+	const { stdout, stderr } = await run(
+		process.execPath,
+		[
+			the_collector,
+			"--clone",
+			"--out",
+			where_the_state_should_land,
+			"--from",
+			a_repository_with_a_history,
+			"--ref",
+			"main",
+		],
+		{ encoding: "utf8", cwd: where_the_clone_should_land },
+	);
+	assert.match(stdout + stderr, /wrote/);
+
+	const the_state = JSON.parse(readFileSync(where_the_state_should_land, "utf8"));
+	assert.equal(
+		the_state.the_history.commits.length,
+		5,
+		"the clone came back with a fraction of the history, and the page would have reported that as the project's size",
+	);
+	assert.equal(the_state.the_build.branch, "main", "the branch reported is not the branch that was cloned");
+});
 
 /** A program that stands in for the interpreter, so a test can decide what the suite says.
  *
