@@ -1,0 +1,739 @@
+---
+/**
+ * The page. It prints what the state says and nothing else.
+ *
+ * **Every number on this page was read out of the repository by a machine.** There is
+ * not one hard-coded stage, role, test count, phase or commit on it, and there is a
+ * test that holds this true: the state is a separate file, written by
+ * `scripts/ask_the_repository.mjs`, and a fact that is not in that file cannot appear
+ * here. The words a fact is allowed to be printed as come from
+ * `src/page/what_the_page_says.mjs`, which is where a suite that was never run is kept
+ * apart from a suite that failed.
+ *
+ * **What is written by hand is only what the repository cannot refute**: the pitch, the
+ * problem, and who to write to. A number somebody typed is a number that goes stale
+ * quietly, and this page exists because a project of this kind should not do that.
+ */
+import the_state from "../state/the_repository.json";
+import {
+	what_the_build_says,
+	what_the_ci_says,
+	what_the_deliveries_say,
+	what_the_history_says,
+	what_the_licence_says,
+	what_the_phases_say,
+	what_the_state_machine_says,
+	what_the_suite_says,
+} from "../page/what_the_page_says.mjs";
+
+const the_build = what_the_build_says(the_state.the_build);
+const the_suite = what_the_suite_says(the_state.the_suite);
+const the_history = what_the_history_says(the_state.the_history);
+const the_ci = what_the_ci_says(the_state.the_github);
+const the_licence = what_the_licence_says(the_state.the_licence);
+const the_deliveries = what_the_deliveries_say(the_state.deliveries);
+const the_phases = what_the_phases_say(the_state.phases);
+const the_machine = what_the_state_machine_says(the_state.the_domain);
+
+const the_agents = the_state.the_domain.agents;
+const the_artifacts = the_state.the_domain.artifacts;
+const the_artifacts_that_exist = the_artifacts.filter((an_artifact) => an_artifact.exists_in_the_code);
+const the_phases_that_are_done = the_phases.filter((a_phase) => a_phase.verdict === "done");
+const the_deliveries_an_agent_wrote = the_deliveries.filter(
+	(a_delivery) => a_delivery.was_written_by_an_agent === true,
+);
+const the_planned = the_state.planned_and_not_yet_built;
+const the_planned_that_are_there = the_planned.filter((a_path) => a_path.exists_on_disk);
+
+const siteUrl = "https://steamnoid.github.io/ai-sdlc-os-landing";
+const linkedIn = "https://www.linkedin.com/in/christopher-paliga-986352a7/";
+const email = "picospitfire@icloud.com";
+
+const when = new Date(the_build.read_at);
+const when_was_it_read = `${when.toISOString().slice(0, 10)} ${when.toISOString().slice(11, 16)} UTC`;
+
+const a_number_or = (a_number, what_to_say_instead) => (a_number === null ? what_to_say_instead : String(a_number));
+const the_suite_line =
+	the_suite.verdict === "green"
+		? `${a_number_or(the_suite.passed, "?")} passed`
+		: the_suite.verdict === "not green"
+			? `${a_number_or(the_suite.passed, "?")} passed, and it failed`
+			: "not run";
+---
+
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="generator" content={Astro.generator} />
+		<title>ai-sdlc-os — an AI that ships a pull request, and shows its working</title>
+		<meta
+			name="description"
+			content="A deterministic software system in which LLM agents do bounded reasoning inside a state machine, tools and human approval gates — and produce a traceable pull request. Every number on this page is generated from the repository."
+		/>
+		<meta name="author" content="Krzysztof Paliga" />
+		<meta property="og:type" content="website" />
+		<meta property="og:url" content={siteUrl} />
+		<meta property="og:title" content="ai-sdlc-os — an AI that ships a pull request, and shows its working" />
+		<meta
+			property="og:description"
+			content="Bounded reasoning inside a state machine, tools and human approval gates. One real pull request written by an agent. Every number on this page is read from the code."
+		/>
+		<meta property="og:image" content={`${siteUrl}/og-image.png`} />
+		<meta name="twitter:card" content="summary_large_image" />
+		<link rel="icon" type="image/svg+xml" href={`${import.meta.env.BASE_URL}/favicon.svg`} />
+		<style>
+			@import "tailwindcss";
+		</style>
+	</head>
+	<body class="bg-[#fafaf9] text-zinc-900 antialiased selection:bg-zinc-900 selection:text-white">
+		<header class="sticky top-0 z-50 backdrop-blur bg-white/85 border-b border-zinc-200">
+			<div class="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between gap-4">
+				<div class="flex items-center gap-2.5 min-w-0">
+					<div class="w-7 h-7 rounded-md bg-zinc-900 flex items-center justify-center text-white text-[10px] font-bold tracking-widest shrink-0">
+						ASD
+					</div>
+					<span class="text-sm font-semibold tracking-tight truncate">ai-sdlc-os</span>
+					<span
+						class="hidden sm:inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-[11px] font-medium shrink-0 {the_suite.verdict ===
+						'green'
+							? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+							: the_suite.verdict === 'not green'
+								? 'bg-amber-50 border-amber-200 text-amber-800'
+								: 'bg-zinc-50 border-zinc-200 text-zinc-600'}"
+					>
+						<span
+							class="w-1.5 h-1.5 rounded-full {the_suite.verdict === 'green'
+								? 'bg-emerald-500'
+								: the_suite.verdict === 'not green'
+									? 'bg-amber-500'
+									: 'bg-zinc-400'}"></span>
+						{the_suite_line}
+					</span>
+				</div>
+				<nav class="hidden md:flex items-center gap-6 text-sm text-zinc-600 shrink-0">
+					<a href="#shipped" class="hover:text-zinc-900 transition">What shipped</a>
+					<a href="#machine" class="hover:text-zinc-900 transition">State machine</a>
+					<a href="#progress" class="hover:text-zinc-900 transition">Progress</a>
+					<a href="#truth" class="hover:text-zinc-900 transition">How this page works</a>
+				</nav>
+				<a
+					href={the_state.the_repository.url}
+					target="_blank"
+					rel="noopener"
+					class="text-sm px-3.5 py-1.5 rounded-full bg-zinc-900 text-white hover:bg-zinc-800 transition font-medium shrink-0"
+				>
+					Repository
+				</a>
+			</div>
+		</header>
+
+		<!-- Hero -->
+		<section class="max-w-6xl mx-auto px-6 pt-14 pb-10 md:pt-20 md:pb-14">
+			<div class="max-w-3xl">
+				<div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-zinc-200 text-xs text-zinc-600 mb-5">
+					<span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+					Read from {the_state.the_repository.owner}/{the_state.the_repository.name} at
+					<code class="font-mono text-[11px]">{the_build.commit}</code>
+				</div>
+				<h1 class="text-4xl md:text-5xl font-semibold tracking-tight leading-[1.05]">
+					An AI that ships a pull request,<br />
+					<span class="text-zinc-500">and shows its working.</span>
+				</h1>
+				<p class="mt-5 text-[17px] leading-7 text-zinc-600 max-w-2xl">
+					<span class="font-medium text-zinc-900">ai-sdlc-os</span> is a deterministic software system in
+					which language models do bounded reasoning — inside an explicit state machine, a fixed set of tools,
+					and gates a person has to pass. The point is not the demo. It is that the line between the
+					deterministic part and the probabilistic part is obvious, and that you can see it.
+				</p>
+
+				<!-- The numbers, all of them read rather than typed -->
+				<dl class="mt-8 grid grid-cols-2 md:grid-cols-4 gap-3">
+					<div class="rounded-xl border border-zinc-200 bg-white p-4">
+						<dt class="text-[11px] uppercase tracking-wider text-zinc-500">The suite</dt>
+						<dd class="mt-1.5 text-2xl font-semibold tabular-nums">
+							{a_number_or(the_suite.passed, "—")}
+						</dd>
+						<dd class="text-xs text-zinc-500 mt-0.5">
+							{the_suite.verdict === "not run"
+								? "not run for this build"
+								: `tests, ${a_number_or(the_suite.deselected, "?")} opt-in`}
+						</dd>
+					</div>
+					<div class="rounded-xl border border-zinc-200 bg-white p-4">
+						<dt class="text-[11px] uppercase tracking-wider text-zinc-500">Commits</dt>
+						<dd class="mt-1.5 text-2xl font-semibold tabular-nums">
+							{a_number_or(the_history.commits, "—")}
+						</dd>
+						<dd class="text-xs text-zinc-500 mt-0.5">
+							{the_history.verdict === "no history" ? "not a checkout" : "on the branch read"}
+						</dd>
+					</div>
+					<div class="rounded-xl border border-zinc-200 bg-white p-4">
+						<dt class="text-[11px] uppercase tracking-wider text-zinc-500">Artifacts built</dt>
+						<dd class="mt-1.5 text-2xl font-semibold tabular-nums">
+							{the_artifacts_that_exist.length}<span class="text-zinc-400 text-lg">/{the_artifacts.length}</span>
+						</dd>
+						<dd class="text-xs text-zinc-500 mt-0.5">of the pipeline the glossary names</dd>
+					</div>
+					<div class="rounded-xl border border-zinc-200 bg-white p-4">
+						<dt class="text-[11px] uppercase tracking-wider text-zinc-500">Pull requests shipped</dt>
+						<dd class="mt-1.5 text-2xl font-semibold tabular-nums">{the_deliveries.length}</dd>
+						<dd class="text-xs text-zinc-500 mt-0.5">
+							{the_deliveries_an_agent_wrote.length} written by an agent
+						</dd>
+					</div>
+				</dl>
+			</div>
+		</section>
+
+		<!-- What actually shipped -->
+		<section id="shipped" class="bg-white border-y border-zinc-200">
+			<div class="max-w-6xl mx-auto px-6 py-12 md:py-16">
+				<div class="max-w-3xl">
+					<h2 class="text-2xl font-semibold tracking-tight">What actually shipped</h2>
+					<p class="mt-2 text-sm leading-6 text-zinc-600">
+						Two pull requests against a real repository. The second one was written by an agent — not
+						generated as an example, but planned by one agent, implemented by another, and only delivered
+						after the repository's own suite ran green in a container on both sides of the change. Nothing
+						here is a mock-up: every figure below was read from the pull request's own API just now, and the
+						verdict on who wrote it comes from the pull request's own body rather than from the repository's
+						table about it.
+					</p>
+				</div>
+
+				<div class="mt-8 grid md:grid-cols-2 gap-5">
+					{
+						the_deliveries.map((a_delivery) => (
+							<article class="rounded-2xl border border-zinc-200 bg-white p-6 flex flex-col">
+								<div class="flex items-start justify-between gap-3">
+									<a
+										href={a_delivery.url}
+										target="_blank"
+										rel="noopener"
+										class="text-xs font-mono text-zinc-500 hover:text-zinc-900"
+									>
+										#{a_delivery.number}
+									</a>
+									<span
+										class={`text-[11px] px-2 py-0.5 rounded-full border shrink-0 ${
+											a_delivery.was_written_by_an_agent === null
+												? "bg-zinc-50 border-zinc-200 text-zinc-600"
+												: a_delivery.was_written_by_an_agent
+													? "bg-violet-50 border-violet-200 text-violet-800"
+													: "bg-zinc-50 border-zinc-200 text-zinc-700"
+										}`}
+									>
+										{a_delivery.was_written_by_an_agent === null
+											? "author unread"
+											: a_delivery.was_written_by_an_agent
+												? "an agent wrote it"
+												: "a person wrote it"}
+									</span>
+								</div>
+								<h3 class="mt-3 font-semibold leading-snug">{a_delivery.title ?? "no title was read"}</h3>
+								<div class="mt-4 flex flex-wrap gap-x-5 gap-y-1 text-xs text-zinc-500 tabular-nums">
+									<span>+{a_number_or(a_delivery.additions, "?")}</span>
+									<span>−{a_number_or(a_delivery.deletions, "?")}</span>
+									<span>{a_number_or(a_delivery.changed_files, "?")} files</span>
+								</div>
+								<div class="mt-4 pt-4 border-t border-zinc-100 text-xs leading-5 text-zinc-600">
+									<p>
+										<span class="text-zinc-500">The repository's own table says:</span>{" "}
+										<span class="font-medium">{a_delivery.what_the_repository_says}</span>
+									</p>
+									<p class="mt-1.5">
+										<span class="text-zinc-500">Checked against the pull request:</span>{" "}
+										<span class="font-medium">{a_delivery.verdict}</span>
+										{a_delivery.detail ? <span class="text-zinc-500"> — {a_delivery.detail}</span> : null}
+									</p>
+									{a_delivery.they_agree === false ? (
+										<p class="mt-1.5 text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5">
+											Those two disagree, and neither is hidden to make the story tidier.
+										</p>
+									) : null}
+								</div>
+							</article>
+						))
+					}
+				</div>
+			</div>
+		</section>
+
+		<!-- The suite, exactly as it printed -->
+		<section class="max-w-6xl mx-auto px-6 py-12 md:py-16">
+			<div class="max-w-3xl">
+				<h2 class="text-2xl font-semibold tracking-tight">The suite, exactly as it printed</h2>
+				<p class="mt-2 text-sm leading-6 text-zinc-600">
+					{the_suite.verdict === "not run"
+						? "This build did not run the suite, so there is nothing to print. It says so rather than showing a number it does not have."
+						: the_suite.verdict === "not green"
+							? "This build ran the suite and it did not pass. The exit code decides that, not the count of passes underneath it — so both are here."
+							: "This build ran the repository's own suite and it exited zero. Run it yourself and you get these numbers, because these numbers came from running it."}
+				</p>
+			</div>
+
+			<div class="mt-6 rounded-2xl border border-zinc-200 bg-white overflow-hidden shadow-sm">
+				<div class="flex items-center gap-1.5 px-4 py-3 border-b border-zinc-100 bg-zinc-50/60">
+					<span class="w-3 h-3 rounded-full bg-red-400"></span><span class="w-3 h-3 rounded-full bg-yellow-400"></span><span
+						class="w-3 h-3 rounded-full bg-green-400"></span>
+					<span class="ml-3 text-xs font-medium text-zinc-600">uv run pytest -q</span>
+					<span
+						class={`ml-auto text-[11px] px-2 py-0.5 rounded-full border ${
+							the_suite.verdict === "green"
+								? "bg-emerald-50 border-emerald-200 text-emerald-800"
+								: the_suite.verdict === "not green"
+									? "bg-amber-50 border-amber-200 text-amber-800"
+									: "bg-zinc-50 border-zinc-200 text-zinc-600"
+						}`}
+					>
+						exited {the_suite.verdict === "not run" ? "— never ran" : the_suite.verdict === "green" ? "0" : "non-zero"}
+					</span>
+				</div>
+				{
+					the_suite.what_it_printed ? (
+						<pre class="p-5 text-[13px] leading-6 font-mono text-zinc-700 overflow-x-auto"><code>{the_suite.what_it_printed.trimEnd()}</code></pre>
+					) : (
+						<p class="p-5 text-sm text-zinc-500">
+							Nothing was printed, because the suite was not run for this build.{" "}
+							<span class="text-zinc-600">{the_suite.detail}</span>
+						</p>
+					)
+				}
+				{
+					the_suite.detail ? (
+						<div class="px-5 py-3 bg-amber-50 border-t border-amber-100 text-xs text-amber-900">
+							{the_suite.detail}
+						</div>
+					) : null
+				}
+			</div>
+		</section>
+
+		<!-- The state machine -->
+		<section id="machine" class="bg-white border-y border-zinc-200">
+			<div class="max-w-6xl mx-auto px-6 py-12 md:py-16">
+				<div class="max-w-3xl">
+					<h2 class="text-2xl font-semibold tracking-tight">The state machine, read out of the code</h2>
+					<p class="mt-2 text-sm leading-6 text-zinc-600">
+						Every stage and every move below was imported from the repository's own
+						<code class="font-mono text-[12px]">LEGAL_TRANSITIONS</code>. A table written out by hand would
+						look identical on this page and be wrong the first time the domain moved, which is the one thing
+						this arrangement exists to prevent. The columns that say who must be holding a stage come from the
+						two tuples the code uses to decide the same thing, and a stage neither of them claims stops the
+						build rather than being guessed at.
+					</p>
+				</div>
+
+				<div class="mt-8 grid lg:grid-cols-3 gap-5">
+					<div class="rounded-2xl border border-zinc-200 p-5">
+						<h3 class="text-sm font-semibold">Stages</h3>
+						<p class="text-xs text-zinc-500 mt-1 mb-4">and who must be holding each one</p>
+						<ul class="space-y-2">
+							{
+								the_machine.stages.map((a_stage) => (
+									<li class="flex items-center gap-2 text-sm">
+										<code class="font-mono text-[12px] px-1.5 py-0.5 rounded bg-zinc-100 border border-zinc-200">
+											{a_stage.name}
+										</code>
+										<span class="text-xs text-zinc-500 ml-auto">
+											{a_stage.an_agent_must_be_holding_it ? "an agent" : "no agent"}
+										</span>
+									</li>
+								))
+							}
+						</ul>
+						<h3 class="text-sm font-semibold mt-6">Roles</h3>
+						<p class="text-xs text-zinc-500 mt-1 mb-3">the disciplines accountable</p>
+						<div class="flex flex-wrap gap-1.5">
+							{the_machine.roles.map((a_role) => (
+								<span class="text-xs px-2 py-1 rounded bg-white border border-zinc-200 font-mono">{a_role}</span>
+							))}
+						</div>
+					</div>
+
+					<div class="lg:col-span-2 rounded-2xl border border-zinc-200 overflow-hidden">
+						<div class="px-5 py-3 bg-zinc-50 border-b border-zinc-200 text-sm font-medium">
+							Legal moves, and nothing else
+						</div>
+						<div class="overflow-x-auto">
+							<table class="w-full text-sm">
+								<thead class="bg-white border-b border-zinc-200 text-[11px] uppercase tracking-wider text-zinc-500">
+									<tr>
+										<th class="text-left px-5 py-2.5 font-medium">From</th>
+										<th class="text-left px-5 py-2.5 font-medium">To</th>
+										<th class="text-left px-5 py-2.5 font-medium">Why</th>
+									</tr>
+								</thead>
+								<tbody class="divide-y divide-zinc-100">
+									{
+										the_machine.moves.map((a_move) => (
+											<tr>
+												<td class="px-5 py-2.5 align-top">
+													<code class="font-mono text-[12px]">{a_move.from}</code>
+												</td>
+												<td class="px-5 py-2.5 align-top">
+													{a_move.is_terminal ? (
+														<span class="text-xs text-zinc-500 italic">terminal — nowhere to go</span>
+													) : (
+														<div class="flex flex-wrap gap-1.5">
+															{a_move.to.map((a_target) => (
+																<code class="font-mono text-[12px] px-1.5 py-0.5 rounded bg-zinc-100 border border-zinc-200">
+																	{a_target}
+																</code>
+															))}
+														</div>
+													)}
+												</td>
+												<td class="px-5 py-2.5 align-top text-xs text-zinc-500">
+													{a_move.is_terminal ? "no outgoing transition" : "one of the declared moves"}
+												</td>
+											</tr>
+										))
+									}
+								</tbody>
+							</table>
+						</div>
+					</div>
+				</div>
+
+				<!-- The gates -->
+				<div class="mt-8">
+					<h3 class="text-lg font-semibold tracking-tight">And where a gate's answer leads</h3>
+					<p class="mt-2 text-sm leading-6 text-zinc-600 max-w-3xl">
+						A run asks a person {the_machine.gates.length} times. The mapping below was read from the router
+						itself, so an artifact with no row cannot be routed at all — it is refused by name rather than
+						read as a request to implement something. A refusal is an outcome, not a fault, and it ends the
+						run.
+					</p>
+					<div class="mt-5 flex flex-wrap items-center gap-2 text-sm">
+						{the_machine.gates.map((a_gate, where_it_is) => (
+							<>
+								{where_it_is > 0 ? <span class="text-zinc-300">·</span> : null}
+								<span class="px-3 py-1.5 rounded-full bg-amber-50 border border-amber-200 text-amber-900 font-medium">
+									{a_gate.artifact} approved
+								</span>
+								<span class="text-zinc-300">→</span>
+								<code class="px-2 py-1 rounded-md bg-zinc-100 border border-zinc-200 font-mono text-[11px] text-zinc-700">
+									{a_gate.leads_to}
+								</code>
+							</>
+						))}
+						<span class="text-zinc-300">·</span>
+						<span class="px-3 py-1.5 rounded-full bg-amber-50 border border-amber-200 text-amber-900 font-medium">
+							any of them refused
+						</span>
+						<span class="text-zinc-300">→</span>
+						<span class="px-3 py-1.5 rounded-full bg-zinc-900 text-white">the run ends</span>
+					</div>
+					<p class="mt-3 text-xs text-zinc-500">
+						Those are the router's own node names, in its own spelling. The page does not translate them,
+						because the point of the mapping is that it is the code and not a description of it.
+					</p>
+				</div>
+			</div>
+		</section>
+
+		<!-- The agents -->
+		<section class="max-w-6xl mx-auto px-6 py-12 md:py-16">
+			<div class="max-w-3xl">
+				<h2 class="text-2xl font-semibold tracking-tight">The {the_agents.length} agents</h2>
+				<p class="mt-2 text-sm leading-6 text-zinc-600">
+					Each one has one responsibility, and the name is the contract. The list is the repository's
+					glossary, which is its source of truth for naming — and the glossary is checked against the code
+					every time this page is built, so a role or an agent that has been deleted from the domain cannot
+					still be listed here.
+				</p>
+			</div>
+			<div class="mt-8 grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+				{
+					the_agents.map((an_agent) => (
+						<div class="rounded-xl border border-zinc-200 bg-white p-4">
+							<code class="font-mono text-[12px] px-1.5 py-0.5 rounded bg-zinc-100 border border-zinc-200">
+								{an_agent.name}
+							</code>
+							<p class="mt-2.5 text-xs leading-5 text-zinc-600">{an_agent.responsibility}</p>
+						</div>
+					))
+				}
+			</div>
+		</section>
+
+		<!-- Progress -->
+		<section id="progress" class="bg-white border-y border-zinc-200">
+			<div class="max-w-6xl mx-auto px-6 py-12 md:py-16">
+				<div class="max-w-3xl">
+					<h2 class="text-2xl font-semibold tracking-tight">Where it actually is</h2>
+					<p class="mt-2 text-sm leading-6 text-zinc-600">
+						{ the_phases_that_are_done.length } of { the_phases.length } phases are marked done in the
+						repository's own backlog, and a phase counts as done because the document struck its name through
+						— not because a promising word appeared near it. Below them is the list the repository keeps of
+						what is not built yet, with each path checked on disk, so a path that has since been written is
+						reported as written.
+					</p>
+				</div>
+
+				<div class="mt-8 grid lg:grid-cols-5 gap-5">
+					<div class="lg:col-span-3 rounded-2xl border border-zinc-200 overflow-hidden">
+						<div class="px-5 py-3 bg-zinc-50 border-b border-zinc-200 text-sm font-medium">The backlog</div>
+						<ul class="divide-y divide-zinc-100">
+							{
+								the_phases.map((a_phase) => (
+									<li class="px-5 py-3 flex items-start gap-3">
+										<span
+											class={`text-[11px] font-mono px-1.5 py-0.5 rounded border shrink-0 mt-0.5 ${
+												a_phase.verdict === "done"
+													? "bg-emerald-50 border-emerald-200 text-emerald-800"
+													: "bg-white border-zinc-200 text-zinc-500"
+											}`}
+										>
+											{a_phase.number}
+										</span>
+										<div class="min-w-0">
+											<p class="text-sm leading-snug">{a_phase.slice}</p>
+											<p class="text-xs text-zinc-500 mt-1">{a_phase.gate}</p>
+										</div>
+									</li>
+								))
+							}
+						</ul>
+					</div>
+
+					<div class="lg:col-span-2 space-y-5">
+						<div class="rounded-2xl border border-zinc-200 p-5">
+							<h3 class="text-sm font-semibold">Named, not built — and checked</h3>
+							<ul class="mt-3 space-y-1.5 text-xs font-mono text-zinc-600">
+								{
+									the_planned.map((a_path) => (
+										<li class="flex items-center gap-2">
+											<span
+												class={`w-1.5 h-1.5 rounded-full shrink-0 ${a_path.exists_on_disk ? "bg-emerald-500" : "bg-zinc-300"}`}
+											/>
+											<span class={a_path.exists_on_disk ? "text-zinc-400 line-through" : ""}>{a_path.named_as}</span>
+											<span class="ml-auto text-[10px] text-zinc-400 shrink-0">
+												{a_path.exists_on_disk ? "now exists" : "absent"}
+											</span>
+										</li>
+									))
+								}
+							</ul>
+							{
+								the_planned_that_are_there.length > 0 ? (
+									<p class="mt-3 text-xs text-zinc-500">
+										{ the_planned_that_are_there.length } of these named in the same sentence are
+										already on disk, so the page reports them as existing rather than repeating the
+										sentence.
+									</p>
+								) : null
+							}
+						</div>
+
+						<div class="rounded-2xl border border-zinc-200 p-5">
+							<h3 class="text-sm font-semibold">How the commits hold up</h3>
+							<p class="mt-2 text-xs text-zinc-500 leading-5">
+								The repository's rule is that a cycle is one commit that fails and one that makes it pass.
+								Counted from the history, not claimed:
+							</p>
+							<dl class="mt-3 space-y-2 text-sm">
+								<div class="flex items-baseline justify-between gap-3">
+									<dt class="text-zinc-600">commits saying they are red</dt>
+									<dd class="font-mono tabular-nums">
+										{a_number_or(the_history.commits_saying_they_are_red, "—")}
+									</dd>
+								</div>
+								<div class="flex items-baseline justify-between gap-3">
+									<dt class="text-zinc-600">answered by the very next commit</dt>
+									<dd class="font-mono tabular-nums">
+										{a_number_or(the_history.red_commits_answered_by_the_next_commit, "—")}
+									</dd>
+								</div>
+								<div class="flex items-baseline justify-between gap-3">
+									<dt class="text-zinc-600">commits making something pass</dt>
+									<dd class="font-mono tabular-nums">
+										{a_number_or(the_history.commits_making_something_pass, "—")}
+									</dd>
+								</div>
+							</dl>
+							{
+								the_history.commits_saying_they_are_red !== null &&
+								the_history.commits_saying_they_are_red !== the_history.red_commits_answered_by_the_next_commit ? (
+									<p class="mt-3 text-xs text-zinc-500 leading-5">
+										The two numbers are not equal, and the difference is printed rather than rounded away:
+										some red commits are refined by another test commit and some are answered by a
+										repair. A single clean figure would be nicer and untrue.
+									</p>
+								) : null
+							}
+						</div>
+					</div>
+				</div>
+			</div>
+		</section>
+
+		<!-- How this page works -->
+		<section id="truth" class="max-w-6xl mx-auto px-6 py-12 md:py-16">
+			<div class="max-w-3xl">
+				<h2 class="text-2xl font-semibold tracking-tight">How this page avoids lying</h2>
+				<p class="mt-2 text-sm leading-6 text-zinc-600">
+					The previous page for a project of this kind was written by hand, and within a fortnight it was
+					listing a role the project had deleted, a number of agents that no longer existed, and a set of
+					phases that had moved on. So this one is generated, and it is worth being precise about what that
+					means — because "generated" is a word that gets used to mean "looks current".
+				</p>
+			</div>
+
+			<div class="mt-8 grid md:grid-cols-2 gap-5">
+				<div class="rounded-2xl border border-zinc-200 bg-white p-6">
+					<h3 class="font-semibold">Facts are read, not typed</h3>
+					<ul class="mt-3 space-y-2 text-sm text-zinc-600 leading-6">
+						<li>
+							The stages, the roles and the table of legal moves are <strong class="text-zinc-900">imported
+							from the code</strong>. The table above is that constant, not a transcription of it.
+						</li>
+						<li>
+							The test count is <strong class="text-zinc-900">the result of running the suite</strong> in the
+							build, and the terminal block is its output byte for byte.
+						</li>
+						<li>
+							Who wrote a pull request is read from <strong class="text-zinc-900">that pull request's own
+							body</strong>, and the repository's claim is kept beside it rather than replacing it.
+						</li>
+						<li>
+							The glossary is <strong class="text-zinc-900">checked against the code</strong>: a stage or role
+							the code does not have stops the build, and the message says so.
+						</li>
+					</ul>
+				</div>
+
+				<div class="rounded-2xl border border-zinc-900 bg-zinc-900 text-white p-6">
+					<h3 class="font-semibold">Absences are printed as absences</h3>
+					<p class="mt-2 text-sm text-zinc-300 leading-6">
+						The interesting part is not what is on this page. It is what a page like this usually gets wrong,
+						and each of these has a test:
+					</p>
+					<ul class="mt-4 space-y-2.5 text-sm text-zinc-300">
+						<li class="flex gap-2.5">
+							<span class="text-zinc-500">—</span>
+							<span>
+								A suite that was <strong class="text-white">never run</strong> is not a suite that failed,
+								and it is not green.
+							</span>
+						</li>
+						<li class="flex gap-2.5">
+							<span class="text-zinc-500">—</span>
+							<span>
+								A repository with <strong class="text-white">no workflow</strong> is not a repository whose
+								checks passed. It says:
+								<span class="text-white">{the_ci.detail ?? the_ci.verdict}</span>
+							</span>
+						</li>
+						<li class="flex gap-2.5">
+							<span class="text-zinc-500">—</span>
+							<span>
+								An API that could not be reached leaves a field <strong class="text-white">unread</strong>,
+								not <em>no</em>.
+							</span>
+						</li>
+						<li class="flex gap-2.5">
+							<span class="text-zinc-500">—</span>
+							<span>
+								The licence is the file's own words:
+								<strong class="text-white">{the_licence.name ?? "not stated"}</strong>. This project is not
+								open source, and the page does not pretend otherwise.
+							</span>
+						</li>
+					</ul>
+				</div>
+			</div>
+
+			<div class="mt-6 rounded-2xl border border-zinc-200 bg-white p-5 flex flex-wrap items-center gap-x-8 gap-y-3 text-xs text-zinc-500">
+				<span>
+					Read from <strong class="text-zinc-800 font-mono">{the_state.the_code_that_answered}</strong>
+				</span>
+				<span>
+					Branch <strong class="text-zinc-800 font-mono">{the_build.branch}</strong> at
+					<strong class="text-zinc-800 font-mono">{the_build.commit}</strong>
+				</span>
+				<span>
+					Read at <strong class="text-zinc-800 font-mono">{when_was_it_read}</strong>
+				</span>
+				<span class="ml-auto">Rebuilt every six hours, and on every push.</span>
+			</div>
+		</section>
+
+		<!-- Contact -->
+		<section class="max-w-6xl mx-auto px-6 pb-12 md:pb-16">
+			<div class="rounded-2xl border border-zinc-200 bg-zinc-900 text-white overflow-hidden">
+				<div class="grid md:grid-cols-5">
+					<div class="md:col-span-3 p-8 md:p-10">
+						<div class="inline-flex items-center gap-2 text-xs font-mono text-zinc-400">
+							<span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+							Available for AI-first engineering roles
+						</div>
+						<h2 class="mt-3 text-2xl font-semibold tracking-tight">Built by Krzysztof Paliga</h2>
+						<p class="mt-3 text-sm leading-6 text-zinc-300 max-w-xl">
+							The repository is public, so nothing here needs arranging in advance: read the code, run the
+							suite, and judge the work. If you would rather talk about it, I am glad to.
+						</p>
+						<div class="mt-6 flex flex-wrap gap-3">
+							<a
+								href={the_state.the_repository.url}
+								target="_blank"
+								rel="noopener"
+								class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white text-zinc-900 text-sm font-medium hover:bg-zinc-100 transition"
+							>
+								Read {the_state.the_repository.name}
+							</a>
+							<a
+								href={linkedIn}
+								target="_blank"
+								rel="noopener"
+								class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-zinc-800 border border-white/10 text-white text-sm font-medium hover:bg-zinc-700 transition"
+							>
+								LinkedIn
+							</a>
+							<a
+								href={`mailto:${email}`}
+								class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-zinc-800 border border-white/10 text-white text-sm font-medium hover:bg-zinc-700 transition"
+							>
+								{email}
+							</a>
+						</div>
+					</div>
+					<div
+						class="md:col-span-2 bg-white text-zinc-900 p-8 md:p-10 flex flex-col justify-center border-t md:border-t-0 md:border-l border-white/10"
+					>
+						<h3 class="font-semibold">Run it yourself</h3>
+						<div class="mt-4 space-y-3">
+							{
+								the_state.the_commands_the_readme_gives.slice(0, 2).map((a_block) => (
+									<pre class="text-[12px] leading-6 font-mono bg-zinc-50 border border-zinc-200 rounded-lg p-3 overflow-x-auto">
+										<code>{a_block.lines.join("\n")}</code>
+									</pre>
+								))
+							}
+						</div>
+						<p class="mt-4 text-xs text-zinc-500 leading-5">
+							Read from the repository's README, so the commands here cannot be a transcription that has
+							gone stale. The first block is what produces every number above.
+						</p>
+					</div>
+				</div>
+			</div>
+
+			<footer class="mt-10 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-zinc-500 border-t border-zinc-200 pt-6">
+				<div>
+					© 2026 Krzysztof Paliga · {the_state.the_repository.owner}/{the_state.the_repository.name} · built
+					with Astro and Tailwind · every fact on this page read from
+					<code class="font-mono">{the_build.branch}</code>
+					at <code class="font-mono">{the_build.commit}</code>
+				</div>
+				<div class="flex items-center gap-3">
+					<span class="px-2 py-1 rounded-full bg-white border border-zinc-200">No tracking</span>
+					<span class="px-2 py-1 rounded-full bg-white border border-zinc-200">No cookies</span>
+					<span class="px-2 py-1 rounded-full bg-white border border-zinc-200">Nothing hand-typed</span>
+				</div>
+			</footer>
+		</section>
+	</body>
+</html>

@@ -1,0 +1,143 @@
+name: Publish the page
+
+# The page is a view of another repository, so it is rebuilt on a schedule and not only
+# when it is edited. The schedule is what keeps a hand-written page honest; it is also
+# what GitHub quietly turns off, which is why the keepalive job below exists.
+on:
+  push:
+    branches: [main]
+  schedule:
+    # Seventeen past, not on the hour: a schedule at :00 is queued behind everybody
+    # else's, and GitHub documents that under load some of those jobs are dropped.
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  # Pages keeps only the newest deployment, so a second run cancels the first rather
+  # than the two deploying out of order.
+  group: pages
+  cancel-in-progress: true
+
+env:
+  # The branch the project is on. `main` there holds two commits and no source at all,
+  # so the page would have nothing to show. One value changes when the work merges.
+  THE_BRANCH: phase-1-foundation
+
+jobs:
+  collect:
+    name: Read the repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install the project's own dependencies
+        # The collector imports the project's code, and that code imports langgraph. A
+        # bare interpreter cannot read the state machine, so the project's lockfile is
+        # installed rather than guessed at.
+        run: |
+          curl -fsSL https://astral.sh/uv/install.sh | sh
+          ~/.local/bin/uv sync --all-extras
+
+      - name: Read the repository, run its suite, and write the state
+        # No GITHUB_TOKEN is passed on purpose: GitHub documents that using it against
+        # the REST API invites secondary rate limits, and these are public endpoints.
+        # If a call fails the collectors record "unread" with the reason, so a rate
+        # limit shortens the page instead of breaking the build.
+        run: |
+          ~/.local/bin/uv run python --version
+          PATH="$HOME/.local/bin:$PATH" node scripts/ask_the_repository.mjs \
+            --clone \
+            --ref "$THE_BRANCH" \
+            --run-the-suite \
+            --github-api https://api.github.com \
+            --out src/state/the_repository.json
+
+      - name: The page's own tests
+        run: npm test
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: the-state
+          path: src/state/the_repository.json
+          retention-days: 7
+
+  build:
+    name: Build the page
+    needs: collect
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Take the state the collect job read
+        uses: actions/download-artifact@v4
+        with:
+          name: the-state
+
+      - run: npm ci
+      - run: npm run build
+
+      - uses: actions/configure-pages@v5
+        with:
+          # Turns Pages on if it is off. The first attempt at this failed without it,
+          # and the failure is an error that says nothing about Pages.
+          enablement: true
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./dist
+
+  deploy:
+    name: Publish
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
+
+  keepalive:
+    name: Keep the schedule alive
+    needs: deploy
+    runs-on: ubuntu-latest
+    # GitHub disables scheduled workflows in a public repository after 60 days without
+    # activity in it — and a page that rebuilds itself never gets a commit, which is
+    # exactly the case that would switch it off. An empty commit well inside the
+    # window keeps the page's own mechanism from being the thing that ends it.
+    #
+    # Once every 45 days rather than every 6 hours, so the history carries one empty
+    # commit a month and not two hundred a year.
+    if: github.event_name == 'schedule'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: How long since this repository last heard from a human
+        id: silence
+        run: |
+          last="$(git log -1 --format=%cI)"
+          days=$(( ( $(date -u +%s) - $(date -u -d "$last" +%s) ) / 86400 ))
+          echo "days_since_the_last_commit=$days" >> "$GITHUB_OUTPUT"
+
+      - name: An empty commit, only if the silence is close to the limit
+        if: steps.silence.outputs.days_since_the_last_commit >= 45
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git commit --allow-empty -m "chore(page): the schedule kept itself alive"
+          git push
