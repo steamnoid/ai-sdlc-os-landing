@@ -1,0 +1,26 @@
+{
+  "name": "ai-sdlc-os-landing",
+  "type": "module",
+  "version": "0.0.1",
+  "private": true,
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro",
+    "test": "node --test test/",
+    "collect": "node scripts/ask_the_repository.mjs --clone --run-the-suite",
+    "gate": "npm run test && npm run collect && astro build"
+  },
+  "dependencies": {
+    "@tailwindcss/vite": "^4.3.3",
+    "astro": "^7.3.2",
+    "tailwindcss": "^4.3.3"
+  },
+  "allowScripts": {
+    "esbuild": true
+  }
+}
