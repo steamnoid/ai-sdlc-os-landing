@@ -14,12 +14,16 @@
 
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
+
+/** A name with a separator in it is a path and means one place; anything else is a program on PATH. */
+const as_a_path_or_as_a_program = (what_was_named) =>
+	what_was_named.includes("/") ? resolve(what_was_named) : what_was_named;
 
 /** The interpreter to run the suite with: the repository's own, if it made one. */
 export function the_interpreter_to_run_the_suite_with(repository, what_was_asked_for) {
 	if (what_was_asked_for !== undefined) {
-		return what_was_asked_for;
+		return as_a_path_or_as_a_program(what_was_asked_for);
 	}
 	const its_own = join(repository, ".venv", "bin", "python");
 	return existsSync(its_own) ? its_own : "python3";

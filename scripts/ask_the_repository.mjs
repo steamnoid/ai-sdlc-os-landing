@@ -104,11 +104,17 @@ function the_artifacts_with_what_the_code_has(the_declared, the_code_has) {
 	});
 }
 
-/** A fresh checkout of the branch, or the one already there brought up to date. */
-function the_checkout_of(where, owner, name, ref) {
-	const the_address = `https://github.com/${owner}/${name}.git`;
+/** A fresh checkout of the branch, or the one already there brought up to date.
+ *
+ * **The clone is whole, and not one commit deep.** A shallow clone is the faster way to
+ * get a build, and it reports a history of one commit — so the page would state a year of
+ * work as a single commit, and the RED/GREEN counts would be zero of zero, with total
+ * confidence. A number that is wrong because it was cheap to obtain is still wrong, and
+ * this is the one place where the page invents a fact out of a build convenience.
+ */
+function the_checkout_of(where, the_address, ref) {
 	if (!existsSync(where)) {
-		const the_clone = spawnSync("git", ["clone", "--quiet", "--depth", "1", "--branch", ref, the_address, where], {
+		const the_clone = spawnSync("git", ["clone", "--quiet", "--branch", ref, the_address, where], {
 			encoding: "utf8",
 		});
 		if (the_clone.status !== 0) {
@@ -116,11 +122,12 @@ function the_checkout_of(where, owner, name, ref) {
 		}
 		return where;
 	}
-	const the_update = spawnSync("git", ["fetch", "--quiet", "--depth", "1", "origin", ref], { cwd: where, encoding: "utf8" });
+	const the_update = spawnSync("git", ["fetch", "--quiet", "origin", ref], { cwd: where, encoding: "utf8" });
 	if (the_update.status !== 0) {
 		throw new Error(`the branch ${ref} could not be fetched:\n${the_update.stderr}`);
 	}
 	spawnSync("git", ["checkout", "--quiet", "FETCH_HEAD"], { cwd: where, encoding: "utf8" });
+	spawnSync("git", ["fetch", "--quiet", "--unshallow"], { cwd: where, encoding: "utf8" });
 	return where;
 }
 
@@ -144,8 +151,16 @@ export async function collect_everything(what_was_asked_for) {
 	const the_api = what_was_asked_for.github_api ?? defaults.github_api;
 	const the_repository = what_was_asked_for.repository
 		? resolve(what_was_asked_for.repository)
-		: the_checkout_of(join(process.cwd(), "build", "the-repository"), the_owner, the_name, the_ref);
+		: the_checkout_of(
+				join(process.cwd(), "build", "the-repository"),
+				what_was_asked_for.from ?? `https://github.com/${the_owner}/${the_name}.git`,
+				the_ref,
+			);
 
+	// A path on the command line names one place, and the collector runs programs from
+	// two different working directories — reading the code from here, and the
+	// repository's own suite from inside the repository. A relative path is resolved
+	// once, where it was named, so that both uses look in the same place.
 	const how_to_run_python = the_interpreter_to_run_the_suite_with(
 		the_repository,
 		what_was_asked_for.python ?? what_was_asked_for.suite_interpreter,
@@ -165,7 +180,10 @@ export async function collect_everything(what_was_asked_for) {
 		the_code_that_answered: the_domain.which_code_answered,
 		the_build: {
 			read_at: new Date().toISOString(),
-			branch: the_history.branch ?? the_ref,
+			// A checkout of a fetched ref is detached, and git calls itself `HEAD`. The
+			// branch that was asked for is the fact a reader wants, and the collector knows
+			// it because it is the one that fetched it.
+			branch: the_history.branch && the_history.branch !== "HEAD" ? the_history.branch : the_ref,
 			tip_commit: the_history.tip_commit ?? null,
 			was_cloned: what_was_asked_for.repository === undefined,
 		},
@@ -235,6 +253,7 @@ const usage = `Collect the state of a repository for the page to render.
     --clone                  read a fresh checkout of --ref into build/the-repository
     --repository <path>      read the checkout that is already there
     --ref <branch>           the branch to read (default: ${defaults.ref})
+    --from <address>         where to clone from (default: the repository on GitHub)
     --out <path>             where the state is written (default: ${defaults.out})
     --run-the-suite          run the repository's own tests and report what they said
     --python <program>       the interpreter to read the code and run the suite with

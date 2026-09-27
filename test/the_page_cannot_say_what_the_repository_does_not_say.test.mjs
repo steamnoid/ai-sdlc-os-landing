@@ -95,6 +95,15 @@ test("a package the pyproject declares is named on the page, and the extras are 
 		the_names.includes("pydantic"),
 		`pydantic is declared by the fixture's pyproject and is missing from ${the_names}, so the stack is being read from the wrong place`,
 	);
+	// A package with an extra in its name carries a closing bracket of its own, and an
+	// array reader that looks for the first `]` on a line stops at `psycopg[binary]` and
+	// reports three of eight packages while looking entirely satisfied.
+	assert.equal(
+		the_names.length,
+		3,
+		`the fixture declares three packages and ${the_names.length} came back as ${the_names}, so the array was closed early`,
+	);
+	assert.ok(the_names.includes("httpx"), `httpx comes after the bracketed name and is missing from ${the_names}`);
 	const the_extras = the_state.the_stack.optional_dependencies;
 	assert.ok(Array.isArray(the_extras), "the extras are not a list, so a package the domain does not need would look like one it does");
 	assert.ok(

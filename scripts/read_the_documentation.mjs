@@ -39,19 +39,41 @@ export function the_text_of(relative_path, inside) {
 	return readFileSync(where_it_should_be, "utf8");
 }
 
-/** The lines of a section, from a heading that starts with a given phrase until the next heading. */
-export function the_section_starting_with(the_text, what_the_heading_starts_with) {
+/** Whether a line is a markdown heading, at any level. */
+const is_a_heading = (a_line) => /^#{1,6}\s/.test(a_line);
+
+/** The words of a heading, without its hashes. */
+const the_words_of = (a_heading) => a_heading.replace(/^#{1,6}\s+/, "").trim();
+
+/** The lines of a section whose heading's words begin with a phrase, or nothing.
+ *
+ * Nothing rather than a refusal, because some sections are genuinely optional and a
+ * caller has to be able to tell "this document says nothing about it" from "this
+ * document is broken".
+ */
+export function the_section_if_there_is_one(the_text, what_the_heading_starts_with) {
 	const lines = the_text.split("\n");
-	const first = lines.findIndex((a_line) => a_line.startsWith("#") && a_line.includes(what_the_heading_starts_with));
+	const first = lines.findIndex(
+		(a_line) => is_a_heading(a_line) && the_words_of(a_line).startsWith(what_the_heading_starts_with),
+	);
 	if (first === -1) {
+		return null;
+	}
+	const rest = lines.slice(first + 1);
+	const next = rest.findIndex(is_a_heading);
+	return (next === -1 ? rest : rest.slice(0, next)).join("\n");
+}
+
+/** The lines of a section the page cannot do without, and a refusal when there is none. */
+export function the_section_starting_with(the_text, what_the_heading_starts_with) {
+	const the_section = the_section_if_there_is_one(the_text, what_the_heading_starts_with);
+	if (the_section === null) {
 		throw new TheRepositoryDoesNotSayWhatThePageNeedsError(
 			`no heading beginning "${what_the_heading_starts_with}"`,
 			"the document",
 		);
 	}
-	const rest = lines.slice(first + 1);
-	const next = rest.findIndex((a_line) => a_line.startsWith("# "));
-	return (next === -1 ? rest : rest.slice(0, next)).join("\n");
+	return the_section;
 }
 
 /** The rows of the first markdown table in some text, as arrays of cells with the edges trimmed. */
@@ -111,18 +133,18 @@ function the_rows_keyed_by_their_headings(in_text) {
 
 /** The stages the glossary names, which the code then has to agree with. */
 export function read_the_stages_named_in_the_glossary(at) {
-	return the_names_of_a_table(the_section_starting_with(the_text_of("docs/domain-glossary.md", at), "## The stages"));
+	return the_names_of_a_table(the_section_starting_with(the_text_of("docs/domain-glossary.md", at), "The stages"));
 }
 
 /** The roles the glossary names, which the code then has to agree with. */
 export function read_the_roles_named_in_the_glossary(at) {
-	return the_names_of_a_table(the_section_starting_with(the_text_of("docs/domain-glossary.md", at), "## The roles"));
+	return the_names_of_a_table(the_section_starting_with(the_text_of("docs/domain-glossary.md", at), "The roles"));
 }
 
 /** The agents the glossary names, with what each is for. The glossary is the only place this is written. */
 export function read_the_agents_named_in_the_glossary(at) {
 	return the_rows_keyed_by_their_headings(
-		the_section_starting_with(the_text_of("docs/domain-glossary.md", at), "## The agents"),
+		the_section_starting_with(the_text_of("docs/domain-glossary.md", at), "The agents"),
 	)
 		.map((a_row) => ({
 			name: the_name_in(a_row["Identifier"] ?? ""),
@@ -134,7 +156,7 @@ export function read_the_agents_named_in_the_glossary(at) {
 /** The artifacts the glossary names, with who produces each and what it holds. */
 export function read_the_artifacts_named_in_the_glossary(at) {
 	return the_rows_keyed_by_their_headings(
-		the_section_starting_with(the_text_of("docs/domain-glossary.md", at), "## The artifacts"),
+		the_section_starting_with(the_text_of("docs/domain-glossary.md", at), "The artifacts"),
 	).map((a_row) => ({
 		name: the_name_in(a_row["Artifact"] ?? ""),
 		produced_by: the_name_in(a_row["Produced by"] ?? ""),
@@ -145,7 +167,7 @@ export function read_the_artifacts_named_in_the_glossary(at) {
 /** The errors the glossary names, and what each one protects. */
 export function read_the_errors_named_in_the_glossary(at) {
 	return the_rows_keyed_by_their_headings(
-		the_section_starting_with(the_text_of("docs/domain-glossary.md", at), "## The errors"),
+		the_section_starting_with(the_text_of("docs/domain-glossary.md", at), "The errors"),
 	).map((a_row) => ({
 		name: the_name_in(a_row["Error"] ?? ""),
 		protects: (a_row["Protects"] ?? "").replace(/[`*]/g, "").trim(),
@@ -161,7 +183,7 @@ export function read_the_errors_named_in_the_glossary(at) {
  * what the repository claims and one is what the pull request says.
  */
 export function read_the_deliveries_the_repository_lists(at) {
-	const the_section = the_section_starting_with(the_text_of("AGENTS.md", at), "## What has been delivered");
+	const the_section = the_section_starting_with(the_text_of("AGENTS.md", at), "What has been delivered");
 	const the_rows = the_rows_of_a_table(the_section);
 	if (the_rows.length < 2) {
 		throw new TheRepositoryDoesNotSayWhatThePageNeedsError(
@@ -207,7 +229,7 @@ export function read_the_deliveries_the_repository_lists(at) {
  * backlog row about something that is *not* done.
  */
 export function read_the_phases(at) {
-	const the_rows = the_rows_of_a_table(the_section_starting_with(the_text_of("AGENTS.md", at), "## Backlog"));
+	const the_rows = the_rows_of_a_table(the_section_starting_with(the_text_of("AGENTS.md", at), "Backlog"));
 	const the_phases = the_rows
 		.slice(1)
 		.map((a_row) => ({
@@ -279,10 +301,62 @@ export function read_the_commands_the_readme_gives(at) {
 		.filter((a_block) => a_block.language === "bash" || a_block.language === "sh");
 }
 
-/** The Python the repository asks for, and the packages it depends on.
+/** The lines of a TOML table, from `[name]` until the next table, or nothing.
  *
- * Read with a pattern rather than a TOML parser because the two things the page shows
- * are both one line each, and a parser would be a dependency added to be certain of
+ * A TOML table and a markdown heading are different things that happen to both be a
+ * labelled region of a document, and reading a `pyproject.toml` with a heading matcher
+ * finds nothing in it at all. A file is read by the shape it actually has.
+ */
+function the_lines_of_a_toml_table(in_text, the_name_of_the_table) {
+	const lines = in_text.split("\n");
+	const first = lines.findIndex((a_line) => a_line.trim() === `[${the_name_of_the_table}]`);
+	if (first === -1) {
+		return null;
+	}
+	const rest = lines.slice(first + 1);
+	const next = rest.findIndex((a_line) => a_line.trim().startsWith("["));
+	return next === -1 ? rest : rest.slice(0, next);
+}
+
+/** The lines of an array inside some lines, from `name = [` until the line that closes it.
+ *
+ * The closing line is a line that *is* a bracket, not a line that has one somewhere in
+ * it: `"psycopg[binary]>=3.0",` carries a closing bracket of its own, and a reader that
+ * looks for the first one it sees ends the array three packages into eight and reports
+ * the result as complete.
+ */
+function the_lines_of_an_array_named(in_these_lines, what_the_array_is_called) {
+	const first = in_these_lines.findIndex((a_line) => a_line.trim().startsWith(`${what_the_array_is_called} = [`));
+	if (first === -1) {
+		return null;
+	}
+	const the_lines = [];
+	for (const a_line of in_these_lines.slice(first + 1)) {
+		if (a_line.trim() === "]") {
+			break;
+		}
+		the_lines.push(a_line);
+	}
+	return the_lines;
+}
+
+/** The packages inside a TOML array, given the lines the array spans. */
+function the_packages_in(lines) {
+	return [...lines.join("\n").matchAll(/^\s*"([^"]+)"/gm)].map((a_match) => {
+		const [the_name, the_version] = a_match[1].split(/[<>=!~ ]/);
+		return { name: the_name, version: the_version };
+	});
+}
+
+/** The Python the repository asks for, the packages it needs, and the extras it keeps aside.
+ *
+ * The extras are a separate list and not a footnote on the required one: the repository
+ * deliberately keeps the graph and the model factory out of the default install so the
+ * domain layer can be used without them, and a page that printed one flat list of
+ * packages would say the opposite of what the project decided.
+ *
+ * Read with patterns rather than a TOML parser because the three things the page shows
+ * are each one small table, and a parser would be a dependency added to be certain of
  * something a pattern already states.
  */
 export function read_the_stack(at) {
@@ -296,16 +370,36 @@ export function read_the_stack(at) {
 		);
 	}
 
-	const the_dependencies_block = /\[project\.dependencies\]([\s\S]*?)(?=\n\[|\s*$)/.exec(the_text);
-	const the_dependencies =
-		the_dependencies_block === null
-			? []
-			: [...the_dependencies_block[1].matchAll(/^\s*"([^"]+)"\s*=\s*"([^"]+)"/gm)].map((a_match) => ({
-					name: a_match[1],
-					version: a_match[2],
-				}));
+	const the_project_table = the_lines_of_a_toml_table(the_text, "project");
+	const the_required = the_project_table === null ? null : the_lines_of_an_array_named(the_project_table, "dependencies");
+	if (the_required === null) {
+		throw new TheRepositoryDoesNotSayWhatThePageNeedsError(
+			"no dependencies array in the [project] table",
+			"pyproject.toml",
+		);
+	}
 
-	return { python: the_python[1], dependencies: the_dependencies };
+	const the_extras_table = the_lines_of_a_toml_table(the_text, "project.optional-dependencies");
+	const the_extras = [];
+	let a_group = null;
+	for (const a_line of the_extras_table ?? []) {
+		const a_group_name = /^\s*([a-z][a-z0-9_-]*)\s*=\s*\[/.exec(a_line);
+		if (a_group_name !== null) {
+			a_group = { name: a_group_name[1], packages: [] };
+			the_extras.push(a_group);
+			continue;
+		}
+		const a_package = /^\s*"([^"]+)"/.exec(a_line);
+		if (a_package !== null && a_group !== null) {
+			a_group.packages.push(a_package[1].split(/[<>=!~ ]/)[0]);
+		}
+	}
+
+	return {
+		python: the_python[1],
+		dependencies: the_packages_in(the_required),
+		optional_dependencies: the_extras,
+	};
 }
 
 /** The licence, named from the file itself rather than from what a badge would say. */
