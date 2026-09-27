@@ -143,3 +143,36 @@ test("the build publishes the state it was built from, so the page can be checke
 	);
 	assert.equal(the_published.the_suite.passed, the_state.the_suite.passed);
 });
+
+test("every delivery offers its pull request, instead of hiding it in a small number", () => {
+	// The card used to carry its link on a two-character `#2` in the corner, which is the
+	// least findable place a link can be and the only thing on the card a reader is
+	// invited to press. The count is checked because a card that lost its affordance
+	// would still show the number, and the number is not the affordance.
+	const how_many_are_offered = (the_page_as_text.match(/Open the pull request/g) ?? []).length;
+	assert.equal(
+		how_many_are_offered,
+		the_state.deliveries.length,
+		`the page offers ${how_many_are_offered} pull requests and describes ${the_state.deliveries.length}`,
+	);
+});
+
+test("no delivery link sits inside another link", () => {
+	// A card that is itself a link cannot contain the old `#2` link: nested anchors are
+	// invalid, browsers break the inner one, and the count of `href` is what shows it.
+	//
+	// Only `href` is counted, and not the URL wherever it appears. The project's own
+	// backlog quotes pull request #2 inside a phase's gate, so its address is on the page
+	// as plain text — and the first version of this test counted that, and failed for a
+	// reason that had nothing to do with what it was checking.
+	const the_page_as_markup = readFileSync(join(where_the_build_landed, "index.html"), "utf8");
+	for (const a_delivery of the_state.deliveries) {
+		const the_escaped = a_delivery.url.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+		const how_many = (the_page_as_markup.match(new RegExp(`href="${the_escaped}"`, "g")) ?? []).length;
+		assert.equal(
+			how_many,
+			1,
+			`${a_delivery.url} is an href ${how_many} times, so one of the links is inside another`,
+		);
+	}
+});
