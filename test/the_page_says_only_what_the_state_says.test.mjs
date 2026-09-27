@@ -80,6 +80,23 @@ test("the page does not count the deliveries in prose, because prose does not ge
 	);
 });
 
+test("the counted sentence is readable, because a newline between two expressions vanishes", () => {
+	// A paragraph written as `{a} things and\n{b} of them\n{was} written` renders as
+	// `and1 of themwas written`. Nothing raises: the count is present, the words are
+	// present, and a test looking for either finds it. Only a test looking for the
+	// spaces notices, which is why this one looks for the whole sentence.
+	assert.match(
+		the_page_as_text,
+		/against a real repository, and \d+ of them (was|were) written by an agent/i,
+		"the counted sentence lost a space, which on a page reads as a typo in the middle of the claim",
+	);
+	assert.doesNotMatch(
+		the_page_as_text,
+		/\band\d|\dof them\b|\bthem(was|were)\b/i,
+		"an expression is welded to the word beside it, so the page reads as though it were machine output",
+	);
+});
+
 test("the page does not conclude the project is not open source, because the file decides that", () => {
 	assert.doesNotMatch(
 		the_page_as_text,

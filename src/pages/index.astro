@@ -59,6 +59,54 @@ const the_suite_line =
 		: the_suite.verdict === "not green"
 			? `${a_number_or(the_suite.passed, "?")} passed, and it failed`
 			: "not run";
+
+/**
+ * A phase's name, in the parts the document wrote it as.
+ *
+ * The backlog strikes a finished phase through, and the page shows a strikethrough
+ * rather than the two tildes and the two asterisks that mean one. Split into parts
+ * rather than passed through `set:html`, so the text is escaped by the template and
+ * cannot carry a tag of its own out of a markdown document.
+ */
+const the_parts_of = (a_slice) => {
+	const parts = [];
+	for (const a_piece of a_slice.split("~~")) {
+		parts.push({ the_text: a_piece.replace(/\*\*/g, "").trim(), was_struck: parts.length % 2 === 1 });
+	}
+	return parts.filter((a_part) => a_part.the_text.length > 0);
+};
+
+/**
+ * A table cell as plain text: the emphasis marks gone, a link shown as its text and
+ * its address.
+ *
+ * The backlog's gate column is prose written for a terminal, and it carries links and
+ * bold. Printing that raw puts four asterisks and a markdown link on a web page, which
+ * reads as a mistake even though it is faithful — and the address is the part a reader
+ * needs, so it stays.
+ */
+const as_plain_text = (a_cell) =>
+	a_cell
+		.replace(/\[([^\]]+)\]\(([^)]+)\)/g, "$1 ($2)")
+		.replace(/\*\*/g, "")
+		.replace(/`/g, "")
+		.trim();
+
+/**
+ * The sentence about the deliveries, assembled here rather than in the template.
+ *
+ * **A newline between two expressions disappears.** A paragraph written as
+ * `{count} pull requests … and\n{count} of them\n{was} written` renders as
+ * `and1 of themwas written` — no space, no error, and every test that looks for the
+ * count or for the words still passes. So anything with more than one thing to say is
+ * built here, where the spaces are characters and not layout.
+ */
+const what_shipped = {
+	deliveries: `${the_deliveries.length} pull requests against a real repository`,
+	written_by_an_agent: `${the_deliveries_an_agent_wrote.length} of them ${
+		the_deliveries_an_agent_wrote.length === 1 ? "was" : "were"
+	} written by an agent`,
+};
 ---
 
 <html lang="en">
@@ -193,14 +241,11 @@ const the_suite_line =
 				<div class="max-w-3xl">
 					<h2 class="text-2xl font-semibold tracking-tight">What actually shipped</h2>
 					<p class="mt-2 text-sm leading-6 text-zinc-600">
-						{the_deliveries.length} pull requests against a real repository, and
-						{the_deliveries_an_agent_wrote.length} of them
-						{the_deliveries_an_agent_wrote.length === 1 ? "was" : "were"} written by an agent — not
-						generated as an example, but planned by one agent, implemented by another, and only delivered
-						after the repository's own suite ran green in a container on both sides of the change. Nothing
-						here is a mock-up: every figure below was read from the pull request's own API just now, and the
-						verdict on who wrote it comes from the pull request's own body rather than from the repository's
-						table about it.
+						{what_shipped.deliveries}, and {what_shipped.written_by_an_agent} — not generated as an example,
+						but planned by one agent, implemented by another, and only delivered after the repository's own
+						suite ran green in a container on both sides of the change. Nothing here is a mock-up: every
+						figure below was read from the pull request's own API just now, and the verdict on who wrote it
+						comes from the pull request's own body rather than from the repository's table about it.
 					</p>
 				</div>
 
@@ -492,8 +537,12 @@ const the_suite_line =
 											{a_phase.number}
 										</span>
 										<div class="min-w-0">
-											<p class="text-sm leading-snug">{a_phase.slice}</p>
-											<p class="text-xs text-zinc-500 mt-1">{a_phase.gate}</p>
+											<p class="text-sm leading-snug">
+												{the_parts_of(a_phase.slice).map((a_part) =>
+													a_part.was_struck ? <s class="text-zinc-400">{a_part.the_text}</s> : a_part.the_text
+													)}
+											</p>
+											<p class="text-xs text-zinc-500 mt-1">{as_plain_text(a_phase.gate)}</p>
 										</div>
 									</li>
 								))
