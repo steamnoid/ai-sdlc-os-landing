@@ -25,9 +25,12 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  # The branch the project is on. `main` there holds two commits and no source at all,
-  # so the page would have nothing to show. One value changes when the work merges.
-  THE_BRANCH: phase-1-foundation
+  # The branch the project is on, and the one value here that has to be kept true.
+  #
+  # It was `phase-1-foundation` while the work lived there, and the day that branch was
+  # merged and deleted the page stopped being able to read anything at all. The failure
+  # was loud — a red run, and git's own sentence — and the fix was this value.
+  THE_BRANCH: main
   # Where this page is published, which is also where the state it was built from is
   # read back from.
   THE_SITE: https://steamnoid.github.io/ai-sdlc-os-landing

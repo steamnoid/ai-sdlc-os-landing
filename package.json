@@ -15,7 +15,7 @@
     "test:collectors": "node --test test/the_code_is_what_the_page_says.test.mjs test/the_page_cannot_say_what_the_repository_does_not_say.test.mjs test/what_the_page_says.test.mjs",
     "test:page": "node --test test/the_page_says_only_what_the_state_says.test.mjs",
     "collect": "node scripts/ask_the_repository.mjs --repository \"${AISDLC_REPOSITORY:-../ai-sdlc-os}\" --run-the-suite --github-api \"${GITHUB_API:-https://api.github.com}\"",
-    "collect:published": "node scripts/check_out_the_project.mjs && uv sync --all-extras --project build/the-repository && node scripts/ask_the_repository.mjs --repository build/the-repository --ref \"${AISDLC_BRANCH:-phase-1-foundation}\" --run-the-suite --github-api \"${GITHUB_API:-https://api.github.com}\"",
+    "collect:published": "node scripts/check_out_the_project.mjs && uv sync --all-extras --project build/the-repository && node scripts/ask_the_repository.mjs --repository build/the-repository --ref \"${AISDLC_BRANCH:-main}\" --run-the-suite --github-api \"${GITHUB_API:-https://api.github.com}\"",
     "gate": "npm run test && npm run collect && astro build"
   },
   "dependencies": {

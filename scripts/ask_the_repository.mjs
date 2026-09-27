@@ -132,7 +132,7 @@ function the_checkout_of(where, the_address, ref) {
 }
 
 const defaults = {
-	ref: "phase-1-foundation",
+	ref: "main",
 	out: "src/state/the_repository.json",
 	// Asking GitHub needs a network, and a build that cannot be run without one is a
 	// build that cannot be checked. So the API is asked only when it is named: the
