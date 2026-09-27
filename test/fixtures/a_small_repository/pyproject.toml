@@ -1,0 +1,9 @@
+[project]
+name = "a-small-repository"
+requires-python = ">=3.12"
+
+[project.dependencies]
+pydantic = "^2.0"
+
+[dependency-groups]
+dev = ["pytest = \"^9.0\""]
