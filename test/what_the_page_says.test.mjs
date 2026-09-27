@@ -184,7 +184,7 @@ test("the state machine on the page is the one in the code, stage for stage and 
 });
 
 test("the build says which commit, which branch and when, and never drops the time", () => {
-	const verdict = what_the_build_says(a_state());
+	const verdict = what_the_build_says(a_state().the_build);
 
 	assert.equal(verdict.commit, "13325ba");
 	assert.equal(verdict.branch, "phase-1-foundation");

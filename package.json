@@ -12,7 +12,8 @@
     "preview": "astro preview",
     "astro": "astro",
     "test": "node --test test/",
-    "collect": "node scripts/ask_the_repository.mjs --clone --run-the-suite",
+    "collect": "node scripts/ask_the_repository.mjs --repository \"${AISDLC_REPOSITORY:-../ai-sdlc-os}\" --run-the-suite --github-api \"${GITHUB_API:-https://api.github.com}\"",
+    "collect:published": "node scripts/ask_the_repository.mjs --clone --ref \"${AISDLC_BRANCH:-phase-1-foundation}\" --run-the-suite --github-api \"${GITHUB_API:-https://api.github.com}\"",
     "gate": "npm run test && npm run collect && astro build"
   },
   "dependencies": {

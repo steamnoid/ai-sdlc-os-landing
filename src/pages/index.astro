@@ -193,7 +193,9 @@ const the_suite_line =
 				<div class="max-w-3xl">
 					<h2 class="text-2xl font-semibold tracking-tight">What actually shipped</h2>
 					<p class="mt-2 text-sm leading-6 text-zinc-600">
-						Two pull requests against a real repository. The second one was written by an agent — not
+						{the_deliveries.length} pull requests against a real repository, and
+						{the_deliveries_an_agent_wrote.length} of them
+						{the_deliveries_an_agent_wrote.length === 1 ? "was" : "were"} written by an agent — not
 						generated as an example, but planned by one agent, implemented by another, and only delivered
 						after the repository's own suite ran green in a container on both sides of the change. Nothing
 						here is a mock-up: every figure below was read from the pull request's own API just now, and the
@@ -637,9 +639,9 @@ const the_suite_line =
 						<li class="flex gap-2.5">
 							<span class="text-zinc-500">—</span>
 							<span>
-								The licence is the file's own words:
-								<strong class="text-white">{the_licence.name ?? "not stated"}</strong>. This project is not
-								open source, and the page does not pretend otherwise.
+								There is no claim about the licence here beyond the file. It says
+								<strong class="text-white">{the_licence.name ?? "nothing, because there is no licence file"}</strong>,
+								and that is the whole of it.
 							</span>
 						</li>
 					</ul>
