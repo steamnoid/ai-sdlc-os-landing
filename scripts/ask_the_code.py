@@ -341,6 +341,11 @@ def main() -> int:
     the_repository = Path(what_they_asked.repository).expanduser().resolve()
     sys.path.insert(0, str(the_source_directory_of(the_repository)))
 
+    # Reading a repository must not change it. Importing its code would otherwise leave
+    # `.pyc` files in somebody else's working tree, which is a mutation of the thing
+    # being measured and a change to a checkout somebody else is working in.
+    sys.dont_write_bytecode = True
+
     try:
         the_answer = the_answer_about(the_repository)
     except Exception as the_refusal:

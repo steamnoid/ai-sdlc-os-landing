@@ -7,9 +7,9 @@ Rules live here. Nothing on the page about this repository is written by hand.
 | | [#1](https://github.com/someone/some-repository/pull/1) | [#2](https://github.com/someone/some-repository/pull/2) |
 |---|---|---|
 | what | stops the thing rolling away | a test that it stays put |
-| who wrote the change | **a person, by hand** | **an agent** |
+| who wrote the change | **an agent** | **a person, by hand** |
 
-## The phases
+## Backlog
 
 | Phase | Slice | Gate |
 |---|---|---|
