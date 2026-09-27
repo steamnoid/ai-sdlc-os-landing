@@ -41,20 +41,28 @@ is a run that failed, and the exit code is the only fact that settles it.
 
 ```bash
 npm ci                # the lockfile is committed; `npm ci` needs it
-npm test              # 52 tests, no network, and it builds the page
 npm run collect       # read the repository, run its suite, write src/state/
+nnpm test              # 52 tests, no network, and it builds the page
 npm run build         # the page, from the state
-npm run gate          # all of the above
+npm run gate          # all of the above, in that order
+
+# read the branch as everybody else sees it, which is what the page is about
+npm run collect:published
 ```
 
 ```bash
-# read a checkout you are working in
-node scripts/ask_the_repository.mjs --repository ../ai-sdlc-os --run-the-suite
+# read a checkout you are working in — the developer's own loop
+npm run collect
 
-# read the branch as everybody else sees it, which is what the page is about
-node scripts/ask_the_repository.mjs --clone --ref phase-1-foundation \
-    --run-the-suite --github-api https://api.github.com
+# read the branch as everybody else sees it, which is what the page is about,
+# and which is what the build does
+npm run collect:published
 ```
+
+Both write `src/state/the_repository.json`, and **neither is ever committed**: the page
+is built from what a run read, and a committed snapshot is a number nobody checked. The
+first deployment of this page published last month's test count for exactly that reason,
+and every step of the build reported success while it happened.
 
 ## How it is put together
 
@@ -67,7 +75,7 @@ scripts/read_the_suite.mjs           runs the suite; green means the exit code
 scripts/read_github.mjs              pull requests, check runs, and refusals kept as values
 src/page/what_the_page_says.mjs      the only place a fact becomes a sentence
 src/pages/index.astro                layout, and not one number
-src/state/the_repository.json        the only bridge between the two
+src/state/the_repository.json        the only bridge — a build artifact, never committed
 ```
 
 `AGENTS.md` has the rules, the reason each one exists, and the things not to do.

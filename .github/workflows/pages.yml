@@ -82,7 +82,13 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: the-state
-          path: src/state/the_repository.json
+          # The directory, not the file. An artifact of one file has that file's own
+          # directory as its root, so uploading `src/state/the_repository.json` produces
+          # an artifact holding `the_repository.json` — and downloading it into the
+          # repository root leaves the real path untouched, where a *committed* state
+          # file sits waiting to be built instead. The first deployment of this page did
+          # exactly that and published last month's numbers while reporting success.
+          path: src/state
           retention-days: 7
 
   build:
@@ -100,6 +106,11 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: the-state
+          # Into `src/state`, matching what was uploaded. The state file is not
+          # committed, so if this step fails the build cannot find it — which is a loud
+          # failure, and the whole reason for that: a page built from a state the build
+          # did not read is a page that lies and says nothing.
+          path: src/state
 
       - run: npm ci
 

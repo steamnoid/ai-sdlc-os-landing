@@ -1,6 +1,6 @@
 import { strict as assert } from "node:assert";
 import { execFile } from "node:child_process";
-import { mkdtempSync, readFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -12,7 +12,22 @@ const run = promisify(execFile);
 const here = dirname(fileURLToPath(import.meta.url));
 const the_repository = resolve(here, "..");
 const the_astro = resolve(the_repository, "node_modules", "astro", "bin", "astro.mjs");
-const the_state = JSON.parse(readFileSync(resolve(the_repository, "src", "state", "the_repository.json"), "utf8"));
+const where_the_state_lives = resolve(the_repository, "src", "state", "the_repository.json");
+
+// The state is a build artifact and is deliberately not committed, so a page can never
+// be built from a snapshot nobody read today. A fresh checkout therefore has to read
+// the project first, and this is the message that says so — a missing file with no
+// explanation is the same silence as a page with a wrong number in it.
+if (!existsSync(where_the_state_lives)) {
+	test("the state exists before the page is judged", () => {
+		assert.fail(
+			`there is no state at ${where_the_state_lives}. Run \`npm run collect\` first: the page is built ` +
+				"from what the collectors read, and that file is never committed on purpose.",
+		);
+	});
+}
+
+const the_state = JSON.parse(readFileSync(where_the_state_lives, "utf8"));
 
 let the_page_as_text = "";
 

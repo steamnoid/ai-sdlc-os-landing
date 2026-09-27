@@ -6,6 +6,15 @@ dist/
 # a checkout of the repository this page describes, and what the suite printed
 build/
 
+# the state the collectors write: a build artifact, and never a committed file.
+#
+# It was committed until the first deployment published a stale one. An artifact of a
+# single file has that file's directory as its root, so the download landed beside the
+# committed copy instead of on it, and the page was built from months-old numbers while
+# every step reported success. Not being in the repository is what makes that a build
+# failure instead of a wrong page.
+src/state/the_repository.json
+
 # dependencies
 node_modules/
 
