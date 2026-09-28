@@ -176,3 +176,39 @@ test("no delivery link sits inside another link", () => {
 		);
 	}
 });
+
+test("the page promises no rhythm, because the schedule does not keep one", () => {
+	// GitHub documents `schedule` as best-effort, and this page watched it stop keeping
+	// one: cron runs came every 3.4 hours, then 4.7, then 6.1, then not at all for 8.4
+	// hours, while the project it describes took three commits an hour. A page that says
+	// "every hour" is describing a guarantee it does not have and cannot check.
+	for (const a_promise of [/\bevery hour\b/i, /\bhourly\b/i, /\bevery six hours\b/i]) {
+		assert.doesNotMatch(the_page_as_text, a_promise, "the page promises a rhythm it cannot keep");
+	}
+	assert.match(
+		the_page_as_text,
+		/Published only when a fact changed/i,
+		"the skip is the part of the mechanism that holds, and it should still be said",
+	);
+});
+
+test("when the facts were read sits beside the commit they were read at", () => {
+	// A reader looking at the numbers at the top should be able to see how old they are
+	// without scrolling to a footnote. The commit alone does not say how fresh it is: a
+	// commit from six hours ago and one from six minutes ago look identical in it.
+	const when_read = new Date(the_state.the_build.read_at);
+	const the_read_at = `${when_read.toISOString().slice(0, 10)} ${when_read.toISOString().slice(11, 16)} UTC`;
+
+	assert.ok(
+		the_page_as_text.includes(the_read_at),
+		`the page does not say when it read the project, and this build read it at ${the_read_at}`,
+	);
+
+	const where_the_commit_is = the_page_as_text.indexOf(the_state.the_build.tip_commit);
+	const where_the_time_is = the_page_as_text.indexOf(the_read_at);
+	assert.ok(where_the_commit_is !== -1 && where_the_time_is !== -1);
+	assert.ok(
+		Math.abs(where_the_commit_is - where_the_time_is) < 200,
+		`the commit and the time it was read are ${Math.abs(where_the_commit_is - where_the_time_is)} characters apart, so freshness is a footnote again`,
+	);
+});
