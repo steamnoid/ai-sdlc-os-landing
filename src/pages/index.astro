@@ -179,10 +179,22 @@ const what_shipped = {
 		<!-- Hero -->
 		<section class="max-w-6xl mx-auto px-6 pt-14 pb-10 md:pt-20 md:pb-14">
 			<div class="max-w-3xl">
-				<div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-zinc-200 text-xs text-zinc-600 mb-5">
+				<div class="inline-flex flex-wrap items-center gap-x-2 gap-y-1 px-3 py-1 rounded-full bg-white border border-zinc-200 text-xs text-zinc-600 mb-5">
 					<span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-					Read from {the_state.the_repository.owner}/{the_state.the_repository.name} at
-					<code class="font-mono text-[11px]">{the_build.commit}</code>
+					<span>
+						Read from {the_state.the_repository.owner}/{the_state.the_repository.name} at
+						<code class="font-mono text-[11px]">{the_build.commit}</code>
+					</span>
+					{/*
+					 * The time beside the commit, not in a footnote. A commit does not say how fresh
+					 * it is — one from six hours ago looks exactly like one from six minutes ago — and
+					 * the schedule that decides when this is read is best-effort, so the gap between
+					 * them and now is a thing a reader is owed rather than a thing the page hides.
+					 */}
+					<span class="text-zinc-300">·</span>
+					<span>
+						read at <span class="font-mono text-[11px]">{when_was_it_read}</span>
+					</span>
 				</div>
 				<h1 class="text-4xl md:text-5xl font-semibold tracking-tight leading-[1.05]">
 					An AI that ships a pull request,<br />
@@ -743,7 +755,13 @@ const what_shipped = {
 				<span>
 					Read at <strong class="text-zinc-800 font-mono">{when_was_it_read}</strong>
 				</span>
-				<span class="ml-auto">Read every hour. Published only when a fact changed.</span>
+				{/*
+				 * No rhythm is promised here, and the absence is the point. The schedule is GitHub's
+				 * `schedule` event, which is documented as best-effort and was observed coming every
+				 * 3.4 hours and then not for 8.4. "Every hour" was on this line for a day and was
+				 * false for most of it.
+				 */}
+				<span class="ml-auto">Rebuilt on a schedule and on every push. Published only when a fact changed.</span>
 			</div>
 		</section>
 

@@ -14,10 +14,11 @@ is its output byte for byte. Who wrote a pull request comes from **that pull req
 body**, not from the project's table about it. The phase table, the commands, the licence
 and the commit history are read from the files that hold them.
 
-The page reads the project every hour and **publishes only when a fact on it changed**, so
-it cannot quietly become wrong and does not burn a deploy on an identical artifact. It
-publishes the state it was built from, so every number on the page can be checked
-against the file it came from.
+The page is rebuilt on a schedule and on every push, and **publishes only when a fact on
+it changed**, so it cannot quietly become wrong and does not burn a deploy on an identical
+artifact. It publishes the state it was built from, so every number on the page can be
+checked against the file it came from — and it says beside every commit **when** it read
+the project, because the schedule is GitHub's and GitHub does not promise it an hour.
 
 ## Why, when the obvious thing is to type it
 

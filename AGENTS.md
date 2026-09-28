@@ -108,22 +108,42 @@ page is about.
   history of one commit, so the page would state a year of work as a single commit in
   total confidence.
 
-## The schedule is the fragile part
+## The schedule is the fragile part, and it kept proving it
 
-The page reads the project every hour so it cannot go stale quietly, and publishes only
-when a fact on it changed. GitHub documents two things about a schedule, and both are
-handled here and both are worth knowing before they matter:
+The page is rebuilt on a schedule and on every push, and publishes only when a fact on it
+changed. **Do not promise a rhythm on it, in the page or in this file.** GitHub's
+`schedule` event is documented as best-effort, and this repository watched it stop being
+hourly: the runs came every 3.4 hours, then 4.7, then 6.1, then not at all for 8.4, while
+the project it describes took three commits an hour. The page said "every hour" for a day
+and was wrong for most of it. `test/the_page_says_only_what_the_state_says.test.mjs` now
+refuses the words, because a page whose argument is that its numbers were read cannot
+describe a cadence it has no way to check.
 
-- **A schedule can be delayed, and under load some queued jobs are dropped.** Hence
-  seventeen past rather than on the hour, and hourly rather than daily, because a job
-  that is dropped is an hour of staleness rather than a day of it.
+**What the schedule is allowed to promise: nothing, and what it is given instead is the
+time.** The commit in the hero is printed next to when the project was read, and a test
+holds them within 200 characters of each other, because a commit from six hours ago looks
+exactly like one from six minutes ago.
+
+**What is deliberately not done: publishing when nothing changed, to look alive.** That
+would move the timestamp and leave the numbers stale, which is the opposite of what a
+timestamp is for. A page that says it was read six hours ago and means it is worth more
+than one that says a minute ago and was not.
+
+Two more things about the schedule, both handled and both worth knowing before they matter:
+
+- **Under load some queued jobs are dropped.** Seventeen past rather than on the hour
+  addresses the tip of that and not the queue, which is what this repository learned the
+  hard way; the rest is left to the `push` trigger, which is immediate and does not queue.
 - **In a public repository, scheduled workflows are disabled after 60 days without
   repository activity.** A page that reads and publishes on a schedule never receives a
   commit, so its own mechanism is what would switch it off. The `keepalive` job pushes
   one empty commit once the silence passes 45 days — one a month, rather than two
   hundred a year.
 
-If the page ever stops updating, check that job before anything else.
+**If a page here ever needs to be fresh within the hour, cron is the wrong trigger** and
+`repository_dispatch` from the project is the right one. That costs a secret, which is
+why it is not the default, and the trade should be made deliberately rather than by
+picking the free trigger and calling it an hour.
 
 ## Publishing only what changed
 
